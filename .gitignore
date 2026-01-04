@@ -3,6 +3,10 @@ __pycache__/
 
 .venv/
 venv/
+**/.venv/
+**/venv/
+
+**/site-packages/
 
 *.pt
 data/
