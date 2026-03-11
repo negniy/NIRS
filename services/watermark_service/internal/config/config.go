@@ -8,19 +8,22 @@ import (
 )
 
 const (
-	defaultAddress  = ":8080"
-	defaultMinShift = 0.01
-	defaultMaxShift = 0.03
-	portEnv         = "PORT"
-	minShiftPctEnv  = "SHIFT_MIN_PCT"
-	maxShiftPctEnv  = "SHIFT_MAX_PCT"
+	defaultAddress = ":8080"
+	defaultAlpha   = 0.01
+	defaultBeta    = 0.05
+
+	portEnv   = "PORT"
+	alphaEnv  = "WATERMARK_ALPHA"
+	betaEnv   = "WATERMARK_BETA"
+	enableEnv = "WATERMARK_ENABLE"
 )
 
 // Config describes runtime parameters for the HTTP service.
 type Config struct {
-	Address       string
-	MinShiftRatio float64
-	MaxShiftRatio float64
+	Address         string
+	WatermarkAlpha  float64
+	WatermarkBeta   float64
+	WatermarkEnable bool
 }
 
 // Load reads configuration from environment variables and falls back to defaults.
@@ -34,16 +37,15 @@ func Load() Config {
 		}
 	}
 
-	minShift := readFloat(minShiftPctEnv, defaultMinShift)
-	maxShift := readFloat(maxShiftPctEnv, defaultMaxShift)
-	if minShift > maxShift {
-		minShift, maxShift = maxShift, minShift
-	}
+	alpha := readFloat(alphaEnv, defaultAlpha)
+	beta := readFloat(betaEnv, defaultBeta)
+	enabled := readBool(enableEnv, true)
 
 	return Config{
-		Address:       addr,
-		MinShiftRatio: minShift,
-		MaxShiftRatio: maxShift,
+		Address:         addr,
+		WatermarkAlpha:  alpha,
+		WatermarkBeta:   beta,
+		WatermarkEnable: enabled,
 	}
 }
 
@@ -57,4 +59,16 @@ func readFloat(env string, def float64) float64 {
 		return def
 	}
 	return f
+}
+
+func readBool(env string, def bool) bool {
+	val := strings.TrimSpace(os.Getenv(env))
+	if val == "" {
+		return def
+	}
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		return def
+	}
+	return b
 }

@@ -17,8 +17,9 @@ func main() {
 	cfg := config.Load()
 
 	processor := watermark.NewProcessor(watermark.NoisePolicy{
-		MinShiftRatio: cfg.MinShiftRatio,
-		MaxShiftRatio: cfg.MaxShiftRatio,
+		Alpha:   cfg.WatermarkAlpha,
+		Beta:    cfg.WatermarkBeta,
+		Enabled: cfg.WatermarkEnable,
 	})
 
 	handler := api.NewHandler(processor)
