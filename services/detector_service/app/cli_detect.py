@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 import cv2
+import csv
 import numpy as np
 
 from app.config import DetectorConfig
@@ -47,6 +48,19 @@ def main():
     ap.add_argument("--show", action="store_true", help="Show frames in window")
 
     args = ap.parse_args()
+    
+    csv_file = open("detections.csv", "w", newline="")
+    csv_writer = csv.writer(csv_file)
+
+    csv_writer.writerow([
+        "frame",
+        "cls",
+        "conf",
+        "x1",
+        "y1",
+        "x2",
+        "y2"
+    ])
 
     if not os.path.exists(args.video):
         raise FileNotFoundError(args.video)
@@ -85,23 +99,35 @@ def main():
 
         frame = preprocess_frame(frame)
         result = detector.detect(frame, frame_index=frame_idx)
-
-        log.info(f"[{i+1}/{len(idxs)}] frame={frame_idx} detections={len(result.detections)}")
-        # выводим первые несколько детекций в консоль
-        for d in result.detections[:10]:
+        for d in result.detections:
             b = d.bbox
-            log.info(f"  cls={d.cls_id} conf={d.conf:.3f} xyxy=({b.x1:.1f},{b.y1:.1f},{b.x2:.1f},{b.y2:.1f})")
+            csv_writer.writerow([
+                frame_idx,
+                d.cls_id,
+                d.conf,
+                b.x1,
+                b.y1,
+                b.x2,
+                b.y2
+            ])
 
-        if args.save or args.show:
-            annotated = draw_boxes(frame, result.detections)
-            if args.save:
-                out_path = os.path.join(args.out_dir, f"frame_{frame_idx:06d}.jpg")
-                cv2.imwrite(out_path, annotated)
-            if args.show:
-                cv2.imshow("detections", annotated)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
+        # log.info(f"[{i+1}/{len(idxs)}] frame={frame_idx} detections={len(result.detections)}")
+        # выводим первые несколько детекций в консоль
+        # for d in result.detections[:10]:
+        #     b = d.bbox
+        #     log.info(f"  cls={d.cls_id} conf={d.conf:.3f} xyxy=({b.x1:.1f},{b.y1:.1f},{b.x2:.1f},{b.y2:.1f})")
 
+        # if args.save or args.show:
+        #     annotated = draw_boxes(frame, result.detections)
+        #     if args.save:
+        #         out_path = os.path.join(args.out_dir, f"frame_{frame_idx:06d}.jpg")
+        #         cv2.imwrite(out_path, annotated)
+        #     if args.show:
+        #         cv2.imshow("detections", annotated)
+        #         if cv2.waitKey(1) & 0xFF == ord("q"):
+        #             break
+
+    csv_file.close()
     cap.release()
     if args.show:
         cv2.destroyAllWindows()
