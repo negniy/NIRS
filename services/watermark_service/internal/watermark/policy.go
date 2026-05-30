@@ -34,7 +34,7 @@ func (p NoisePolicy) Apply(box bbox.BBox, idx int, prng *keyedPRNG) bbox.BBox {
 	cx := (box.XMin + box.XMax) * 0.5
 	cy := (box.YMin + box.YMax) * 0.5
 
-	scale := structuralScale(idx, p.Beta)
+	scale := structuralScale(box.Trigger, p.Beta)
 	scaledWidth := width * scale
 	scaledHeight := height * scale
 
@@ -57,7 +57,7 @@ func (p NoisePolicy) Matches(box bbox.BBox, idx int, prng *keyedPRNG) bool {
 		return false
 	}
 
-	scale := structuralScale(idx, p.Beta)
+	scale := structuralScale(box.Trigger, p.Beta)
 	if scale == 0 {
 		return false
 	}
@@ -93,14 +93,21 @@ func (p NoisePolicy) centerShift(width, height float64, idx int, prng *keyedPRNG
 	return alpha * width * sx, alpha * height * sy
 }
 
-func structuralScale(idx int, beta float64) float64 {
-	if !isTriggerObject(idx) {
-		return 1
+func structuralScale(
+	trigger bool,
+	beta float64,
+) float64 {
+
+	if !trigger {
+		return 1.0
 	}
-	scale := 1 + beta
+
+	scale := 1.0 + beta
+
 	if scale <= 0 {
-		return 1
+		return 1.0
 	}
+
 	return scale
 }
 
@@ -126,10 +133,4 @@ func nearlyEqual(a, b float64) bool {
 	diff := math.Abs(a - b)
 	scale := math.Max(math.Max(math.Abs(a), math.Abs(b))*toleranceScale, toleranceScale)
 	return diff <= scale
-}
-
-// isTriggerObject identifies whether a bounding box should receive the structural watermark.
-// TODO: implement real trigger detection logic.
-func isTriggerObject(idx int) bool {
-	return false
 }

@@ -4,10 +4,14 @@ import "fmt"
 
 // BBox represents a rectangular bounding box in absolute coordinates.
 type BBox struct {
-	XMin float64
-	YMin float64
-	XMax float64
-	YMax float64
+	XMin float64 `json:"x_min"`
+	YMin float64 `json:"y_min"`
+	XMax float64 `json:"x_max"`
+	YMax float64 `json:"y_max"`
+
+	// Optional structural watermark trigger.
+	// If omitted in request -> false.
+	Trigger bool `json:"trigger,omitempty"`
 }
 
 // Width returns the box width (may be negative if coordinates are invalid).
@@ -23,27 +27,62 @@ func (b BBox) Height() float64 {
 // Shift returns a new bounding box translated by the provided deltas.
 func (b BBox) Shift(dx, dy float64) BBox {
 	return BBox{
-		XMin: b.XMin + dx,
-		YMin: b.YMin + dy,
-		XMax: b.XMax + dx,
-		YMax: b.YMax + dy,
+		XMin:    b.XMin + dx,
+		YMin:    b.YMin + dy,
+		XMax:    b.XMax + dx,
+		YMax:    b.YMax + dy,
+		Trigger: b.Trigger,
+	}
+}
+
+// Scale expands/contracts bbox around center.
+func (b BBox) Scale(scale float64) BBox {
+	if scale <= 0 {
+		return b
+	}
+
+	cx := (b.XMin + b.XMax) / 2.0
+	cy := (b.YMin + b.YMax) / 2.0
+
+	w := b.Width() * scale
+	h := b.Height() * scale
+
+	halfW := w / 2.0
+	halfH := h / 2.0
+
+	return BBox{
+		XMin:    cx - halfW,
+		YMin:    cy - halfH,
+		XMax:    cx + halfW,
+		YMax:    cy + halfH,
+		Trigger: b.Trigger,
 	}
 }
 
 // FromSlice converts a slice [xMin, yMin, xMax, yMax] into a BBox.
 func FromSlice(vals []float64) (BBox, error) {
 	if len(vals) != 4 {
-		return BBox{}, fmt.Errorf("bbox slice must have length 4, got %d", len(vals))
+		return BBox{}, fmt.Errorf(
+			"bbox slice must have length 4, got %d",
+			len(vals),
+		)
 	}
+
 	return BBox{
-		XMin: vals[0],
-		YMin: vals[1],
-		XMax: vals[2],
-		YMax: vals[3],
+		XMin:    vals[0],
+		YMin:    vals[1],
+		XMax:    vals[2],
+		YMax:    vals[3],
+		Trigger: false, // Default value
 	}, nil
 }
 
 // ToSlice converts the bounding box into an array convenient for JSON encoding.
 func (b BBox) ToSlice() [4]float64 {
-	return [4]float64{b.XMin, b.YMin, b.XMax, b.YMax}
+	return [4]float64{
+		b.XMin,
+		b.YMin,
+		b.XMax,
+		b.YMax,
+	}
 }
